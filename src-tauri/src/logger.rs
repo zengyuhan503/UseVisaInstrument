@@ -16,7 +16,6 @@ pub fn init_logging() {
     // 确保 log 目录存在
     let exe_path = get_executable_path();
     let log_dir = exe_path.parent().unwrap().join("log");
-    println!("log_dir:{:?}", log_dir);
     // 根据当前日期生成日志文件名称
     let date = Local::now().format("%Y-%m-%d").to_string();
     let log_file_path = log_dir.join(format!("{}.log", date));

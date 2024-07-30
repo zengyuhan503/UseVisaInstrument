@@ -456,6 +456,10 @@ const showHistoryItem = (content: any) => {
 }
 let showHistory = ref(false)
 const changeShowHistoryView = (status: boolean) => {
+  if(is_running.value==true){
+    message.error('你还在进行测试中，请结束测试后再进行查看历史数据')
+    return false
+  }
   showHistory.value = status
   chartRef.value.clearEcharts()
 }
@@ -626,15 +630,15 @@ onMounted(() => {
             <div v-for="(item, index) in volt_data" :key="index" v-show="form_state[index].case">
               <p class="title">{{ index }}号通道数据</p>
               <p>最大电流{{ is_volt_case ? '/功率' : '' }} <br> <span>{{ item.curr.max }}mA {{ is_volt_case ? `/
-                  ${item.volt.max}V` :
+                  ${item.volt.max}W` :
                 '' }}</span></p>
               <p>最小电流{{ is_volt_case ? '/功率' : '' }} <br><span>{{ item.curr.min }}mA {{ is_volt_case ? `/
-                  ${item.volt.min}V` :
+                  ${item.volt.min}W` :
                 '' }}</span></p>
               <p>当前电流{{ is_volt_case ? '/功率' : '' }} <br><span>{{ item.curr.val || 0 }}mA {{ is_volt_case ? `/
-                  ${item.volt.val}V` : '' }}</span></p>
+                  ${item.volt.val}W` : '' }}</span></p>
               <p>平均电流{{ is_volt_case ? '/功率' : '' }} <br><span>{{ item.curr.average }}mA {{ is_volt_case ? `/
-                  ${item.volt.average}V` : '' }}</span>
+                  ${item.volt.average}W` : '' }}</span>
               </p>
               <p>采样次数 <br><span>{{ item.curr.item.length }}次</span></p>
             </div>

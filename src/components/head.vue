@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { ref, Ref, h, inject } from 'vue';
+import { ref, h, inject } from 'vue';
 import { appWindow } from '@tauri-apps/api/window';
-import Setting from './setting.vue';
-import { FileAddOutlined } from "@ant-design/icons-vue"
-import { useSettingStore } from '../store/setting';
+import {HistoryOutlined} from "@ant-design/icons-vue"
 
 
 type icon = {
@@ -51,8 +49,6 @@ const getIcon = (item: icon): string => {
 const hoverEffect = (item: icon) => {
     item.isHover = !item.isHover;
 }
-let settingRef: Ref<InstanceType<typeof Setting> | null> = ref(null)
-let useSetting = useSettingStore()
 const handleReadFileText = async () => {
     changeShowHistoryView(true)
 }
@@ -71,7 +67,7 @@ const handleReadFileText = async () => {
                         <a-space warp size="middle">
                             <a-tooltip title="查看测试记录">
                                 <a-button type="primary" @click="handleReadFileText" shape="circle"
-                                    :icon="h(FileAddOutlined)" />
+                                    :icon="h(HistoryOutlined)" />
                             </a-tooltip>
                         </a-space>
                     </template>

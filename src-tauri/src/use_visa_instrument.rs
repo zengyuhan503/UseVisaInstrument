@@ -111,7 +111,6 @@ impl VisaInstrument {
         match list {
             Ok(list) => {
                 for item in list {
-                    println!("item:{:?}", item);
                     match item {
                         Ok(vs) => {
                             visa_list.push(vs);
@@ -123,7 +122,6 @@ impl VisaInstrument {
                 }
             }
             Err(err) => {
-                println!("未找到相关的资源:{:?}", err);
                 return Err(format!("未找到相关的资源{:?}", err));
             }
         }
@@ -143,11 +141,9 @@ impl VisaInstrument {
         // 解析item带来的配置信息
         let configs: SetInstrParams = serde_json::from_str(&item)
             .map_err(|err| {
-                println!("{}", err);
                 format!("{}", err)
             })
             .unwrap();
-        println!("configs: {:?}", configs);
         for (index, config) in configs.into_iter().enumerate() {
             if config.case {
                 let chn = (index + 1).to_string();
@@ -207,8 +203,7 @@ impl VisaInstrument {
                         let mut write_instr = &self.instr;
                         let command = format!("MEAS:CURR:DC? (@{})\n", chn);
                         let buf = command.as_bytes();
-                        if let Err(e) = write_instr.write_all(buf) {
-                            println!("Error sending command: {:?}", e);
+                        if let Err(_e) = write_instr.write_all(buf) {
                             let _ = send_win.emit("action_error","因未知原因掉线，请重新测试");
                             break;
                         }
@@ -265,7 +260,6 @@ impl VisaInstrument {
         let buf = cmds.as_bytes();
         let mut write_instr = &self.instr;
         let res = write_instr.write_all(buf).map_err(|err| format!("{}", err));
-        println!("{:?}", res);
         res
     }
 }

@@ -5,13 +5,18 @@ import { DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue
 import { Modal } from "ant-design-vue";
 let emit = defineEmits(["showHistoryItem"])
 let historys = ref()
-let showItem = ref(null)
+let showItem = ref(0)
+let showIndex: number = 0
 const historyChange = (e: { target: { value: any; }; }) => {
     let index = e.target.value
+    showIndex = index
+    changeEchartData(index)
+}
+const changeEchartData = (index: number) => {
     let item = historys.value[index];
     let content = item.content;
+    showIndex = index
     emit('showHistoryItem', content)
-
 }
 let uploadHistoryDataLoading = ref(true)
 let uploadHistoryData = () => {
@@ -31,11 +36,19 @@ let deleteHistory = (index: number) => {
         okText: "确定",
         cancelText: "取消",
         onOk() {
-            console.log('OK');
             ActionDataAsyncCallback("delete_history_data", index + '', '').then(res => {
                 historys.value.splice(index, 1)
+                if (showIndex == index) {
+                    showIndex++;
+                    if (showIndex >= historys.value.length) {
+                        showIndex = historys.value.length - 1;
+                    }
+                    changeEchartData(showIndex);
+                }
+                if(showItem.value>=index){
+                    showItem.value--;
+                }
             })
-            // uploadHistoryDataLoading.value=true;
         },
     })
 }
