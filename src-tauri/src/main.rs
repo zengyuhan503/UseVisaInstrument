@@ -177,7 +177,6 @@ async fn main() {
                             "read_history_data" => {
                                 let temp_file = TEMP_DATA.lock().await;
                                 let res = temp_file.read();
-                                log::info!("read_history_data: {:?}", res);
                                 match res {
                                     Ok(data) => {
                                         let res = serde_json::to_string(&data).unwrap();

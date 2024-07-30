@@ -23,7 +23,6 @@ export const ActionDataAsyncCallback = (name: string, item: any, item2: string) 
                 item1: item,
                 item2: item2
             }
-            console.log(params)
             await emit("action_req", params)
         } catch (error) {
             reject(error)

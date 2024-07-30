@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineComponent, ref, Ref, computed, onMounted, reactive,  provide } from 'vue'
+import { defineComponent, ref, Ref, computed, onMounted, reactive, provide } from 'vue'
 // This starter template is using Vue 3 <script setup> SFCs
 // Check out https://vuejs.org/api/sfc-script-setup.html#script-setup
 import Charts from "./components/charts.vue"
@@ -363,7 +363,7 @@ let actions = ref({
         for (const key in res) {
           let data = res[key];
           let curr = parseInt((data[1] * 1000) + '') / 1000;
-          let volt = parseInt(((data[0]* curr) * 1000) + '') / 1000 ;
+          let volt = parseInt(((data[0] * curr) * 1000) + '') / 1000;
 
           handleSetData(volt, curr, key)
         }
@@ -456,7 +456,7 @@ const showHistoryItem = (content: any) => {
 }
 let showHistory = ref(false)
 const changeShowHistoryView = (status: boolean) => {
-  if(is_running.value==true){
+  if (is_running.value == true) {
     message.error('你还在进行测试中，请结束测试后再进行查看历史数据')
     return false
   }
@@ -629,16 +629,17 @@ onMounted(() => {
           <div class="case_data">
             <div v-for="(item, index) in volt_data" :key="index" v-show="form_state[index].case">
               <p class="title">{{ index }}号通道数据</p>
-              <p>最大电流{{ is_volt_case ? '/功率' : '' }} <br> <span>{{ item.curr.max }}mA {{ is_volt_case ? `/
-                  ${item.volt.max}W` :
-                '' }}</span></p>
-              <p>最小电流{{ is_volt_case ? '/功率' : '' }} <br><span>{{ item.curr.min }}mA {{ is_volt_case ? `/
-                  ${item.volt.min}W` :
-                '' }}</span></p>
-              <p>当前电流{{ is_volt_case ? '/功率' : '' }} <br><span>{{ item.curr.val || 0 }}mA {{ is_volt_case ? `/
-                  ${item.volt.val}W` : '' }}</span></p>
-              <p>平均电流{{ is_volt_case ? '/功率' : '' }} <br><span>{{ item.curr.average }}mA {{ is_volt_case ? `/
-                  ${item.volt.average}W` : '' }}</span>
+              <p>最大电流{{ is_volt_case ? '/功率' : '' }} <br> <span>{{ item.curr.max }}mA
+                  {{ is_volt_case ? `/ ${item.volt.max}W` : '' }}</span>
+              </p>
+              <p>最小电流{{ is_volt_case ? '/功率' : '' }} <br> <span>{{ item.curr.min }}mA
+                  {{ is_volt_case ? `/ ${item.volt.min}W` : '' }}</span>
+              </p>
+              <p>当前电流{{ is_volt_case ? '/功率' : '' }} <br> <span>{{ item.curr.val || 0 }}mA
+                  {{ is_volt_case ? `/ ${item.volt.val}W` : '' }}</span>
+              </p>
+              <p>平均电流{{ is_volt_case ? '/功率' : '' }} <br> <span>{{ item.curr.average }}mA
+                  {{ is_volt_case ? `/ ${item.volt.average}W` : '' }}</span>
               </p>
               <p>采样次数 <br><span>{{ item.curr.item.length }}次</span></p>
             </div>
@@ -694,10 +695,12 @@ html {
   background: rgb(38, 43, 52);
   flex-direction: column;
 }
- div{
+
+div {
   margin: 0;
   padding: 0;
 }
+
 .main {
 
   background: rgba(0, 0, 0, 0.2);
