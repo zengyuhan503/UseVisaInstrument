@@ -15,17 +15,18 @@ mod logger;
 use logger::init_logging;
 
 mod use_case_data_file;
+use use_case_data_file::{TempData, TempFile};
 
 #[tauri::command]
 fn find_all_visa_instrument() -> Result<Vec<String>, String> {
     log::info!("初始化，获取全局的资源");
     let find = use_visa_instrument::VisaInstrument::find_all_resources();
     match find {
-        Ok(list)=>{
+        Ok(list) => {
             let list_str = list.iter().map(|s| s.to_string()).collect::<Vec<String>>();
             Ok(list_str)
-        },
-        Err(err)=>Err(err.to_string())
+        }
+        Err(err) => Err(err.to_string()),
     }
 }
 
@@ -49,10 +50,15 @@ impl Control {
 
 lazy_static! {
     static ref VISA_INSTRUMENT: Arc<RwLock<Option<VisaInstrument>>> = Arc::new(RwLock::new(None));
+    static ref TEMP_DATA: Arc<Mutex<TempFile>> = Arc::new(Mutex::new(TempFile::new()));
 }
 
 #[tokio::main]
 async fn main() {
+    {
+        let temp_file = TEMP_DATA.lock().await;
+        let _ = temp_file.initialize();
+    }
     tauri::Builder::default()
         .setup(|app| {
             let app_win = app.get_window("main").unwrap();
@@ -90,7 +96,7 @@ async fn main() {
                                 log::info!("开启设备时 获取chn");
 
                                 log::info!("初始化instr 实例");
-                                let instr = VisaInstrument::new( instr_ip);
+                                let instr = VisaInstrument::new(instr_ip);
                                 match instr {
                                     Ok(instr) => {
                                         let mut visa_instrument = VISA_INSTRUMENT.write().await;
@@ -160,7 +166,7 @@ async fn main() {
                             "switch_chn" => {
                                 let item = params.item1;
                                 let is_open = params.item2;
-                                let chn = item.replace("o", "");
+                                let chn = item.replace("CH", "");
                                 let visa_instrument = VISA_INSTRUMENT.read().await;
                                 if let Some(ref instrs) = *visa_instrument {
                                     let res = instrs.change_chn_open(chn, is_open);
@@ -168,8 +174,40 @@ async fn main() {
                                 }
                             }
                             "read_line_data" => {}
-                            "save_case_data" => {
-                                // let data =params.item1;
+                            "set_history_data" => {
+                                let content = params.item1;
+                                let temp_data: TempData = serde_json::from_str(&content).unwrap();
+                                let temp_file = TEMP_DATA.lock().await;
+                                let _is_write = temp_file.write(&temp_data);
+                            }
+                            "read_history_data" => {
+                                let temp_file = TEMP_DATA.lock().await;
+                                let res = temp_file.read();
+                                match res {
+                                    Ok(data) => {
+                                        let res = serde_json::to_string(&data).unwrap();
+                                        let _ = emit_win.emit("action_res", res);
+                                    }
+                                    Err(err) => {
+                                        println!("error:{}", err);
+                                    }
+                                }
+                            }
+                            "delete_history_data" => {
+                                let item1 = params.item1;
+                                let index = item1.parse().unwrap();
+                                let temp_file = TEMP_DATA.lock().await;
+                                let res = temp_file.delete(index);
+                                println!("delete_history_data:{:?}",res);
+                                match res {
+                                    Ok(()) => {
+                                        let _ = emit_win.emit("action_res", "ok");
+                                    }
+                                    Err(err) => {
+                                        let strs = format!("delete error:{}", err);
+                                        let _ = emit_win.emit("action_res", strs);
+                                    }
+                                }
                             }
                             _ => {
                                 println!("Unknown event")
@@ -184,6 +222,3 @@ async fn main() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
-// C:\Program Files (x86)\IVI Foundation\VISA\WinNT\Bin
-// C:\Program Files\IVI Foundation\VISA\Win64\Bin\
-// C:\Program Files (x86)\IVI Foundation\VISA\WinNT\Bin\

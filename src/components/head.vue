@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { ref, Ref } from 'vue';
+import { ref, Ref, h, inject } from 'vue';
 import { appWindow } from '@tauri-apps/api/window';
 import Setting from './setting.vue';
-
+import { FileAddOutlined } from "@ant-design/icons-vue"
 import { useSettingStore } from '../store/setting';
-
 
 
 type icon = {
@@ -16,6 +15,11 @@ type icon = {
 interface HeadIcon {
     [key: number]: icon
 }
+
+let changeShowHistoryView = inject("changeShowHistoryView") as ((arg0: boolean) => void)
+
+
+
 let head_ioncs = ref({
     1: {
         "normal": new URL("../assets/images/header-icon (1).png", import.meta.url) as unknown as string,
@@ -49,10 +53,10 @@ const hoverEffect = (item: icon) => {
 }
 let settingRef: Ref<InstanceType<typeof Setting> | null> = ref(null)
 let useSetting = useSettingStore()
-const handleOkSetting = () => {
-    let data = settingRef.value?.settingState;
-    if (data) { useSetting.setState(data) }
+const handleReadFileText = async () => {
+    changeShowHistoryView(true)
 }
+
 </script>
 <template>
     <div class="customization-page app-header " data-tauri-drag-region>
@@ -62,14 +66,12 @@ const handleOkSetting = () => {
         </div>
         <div class="action-icons">
             <a-space warp size="middle">
-                <!-- <a-popover placement="topLeft">
+                <a-popover placement="topLeft">
                     <template #content>
                         <a-space warp size="middle">
-                            <a-tooltip title="数据储存">
-                                <a-button type="primary" shape="circle" :icon="h(FileDoneOutlined)" />
-                            </a-tooltip>
-                            <a-tooltip title="查看历史数据">
-                                <a-button type="primary" shape="circle" :icon="h(FileAddOutlined)" />
+                            <a-tooltip title="查看测试记录">
+                                <a-button type="primary" @click="handleReadFileText" shape="circle"
+                                    :icon="h(FileAddOutlined)" />
                             </a-tooltip>
                         </a-space>
                     </template>
@@ -81,7 +83,7 @@ const handleOkSetting = () => {
                             <img src="../assets/images/setting.png" style="width: 24px;" alt="" srcset="">
                         </span>
                     </div>
-                </a-popover> -->
+                </a-popover>
                 <span v-for="(item, index) in head_ioncs" :key="index">
                     <img :src="getIcon(item)" @click="item.action" @mouseover="hoverEffect(item)"
                         @mouseleave="hoverEffect(item)" alt="">
@@ -89,10 +91,12 @@ const handleOkSetting = () => {
             </a-space>
         </div>
     </div>
-    <!-- <a-modal :maskClosable="false" v-model:open="isSetting" okText="确定" cancelText="取消" title="数据管理设置"
-        @ok="handleOkSetting">
-        <Setting ref="settingRef" />
-    </a-modal> -->
+    <!-- 
+    *    <a-modal :maskClosable="false" v-model:open="isSetting" okText="确定" cancelText="取消" title="数据管理设置"
+    *       @ok="handleOkSetting">
+    *        <Setting ref="settingRef" />
+    *    </a-modal> 
+    -->
 </template>
 <style lang="less">
 .app-header {

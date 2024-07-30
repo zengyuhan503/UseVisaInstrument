@@ -261,7 +261,6 @@ impl VisaInstrument {
     }
     pub fn change_chn_open(&self, chn: String, open: String) -> Result<(), String> {
         let is_on = open;
-        println!("open:{}", is_on);
         let cmds = format!("OUTP {},(@{})\n", is_on, chn);
         let buf = cmds.as_bytes();
         let mut write_instr = &self.instr;

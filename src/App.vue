@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { defineComponent, ref, Ref, computed, onMounted, reactive } from 'vue'
+import { defineComponent, ref, Ref, computed, onMounted, reactive,  provide } from 'vue'
 // This starter template is using Vue 3 <script setup> SFCs
 // Check out https://vuejs.org/api/sfc-script-setup.html#script-setup
 import Charts from "./components/charts.vue"
 import Head from "./components/head.vue"
+import Historylist from './components/historylist.vue';
+
 import { ListenStart, ActionDataAsyncCallback, ACtionDataCallback, ListenError, FindAllVisainstrs } from "./utlis/actionCallback.ts";
 import { message } from 'ant-design-vue';
 import moment from 'moment';
 import { PlusOutlined } from '@ant-design/icons-vue';
+import { UseFileStore } from './store/useFile.ts';
+
 interface FormData {
   [key: string]: {
     case: boolean,
@@ -38,6 +42,8 @@ interface NumericDictionary {
 interface VisaItem {
   [key: string]: string
 }
+
+const useFile = UseFileStore()
 const VNodes = defineComponent({
   props: {
     vnodes: {
@@ -122,7 +128,6 @@ const formattedTime = computed(() => {
 
 const startTask = () => {
   let casing = caseTime.value;
-  console.log(casing)
   if (casing !== 0) {
     setTimeout(() => {
       actions.value.stop_reading.fun()
@@ -349,14 +354,17 @@ let actions = ref({
         startTask()
         startTimer()
       })
+      let start = moment().format("YYYY-MM-DD~HH:mm:ss");
+      useFile.setTime(start);
       ACtionDataCallback(params.name, params.item1, params.rate + '', function (val) {
         if (is_stop.value) return false;
-        console.log(moment().format("YYYY-MM-DD HH:mm:ss"));
+
         let res = handlePairsVal(val);
         for (const key in res) {
           let data = res[key];
-          let volt = parseInt((data[0] * 1000) + '') / 1000;
           let curr = parseInt((data[1] * 1000) + '') / 1000;
+          let volt = parseInt(((data[0]* curr) * 1000) + '') / 1000 ;
+
           handleSetData(volt, curr, key)
         }
         label += label;
@@ -366,8 +374,8 @@ let actions = ref({
   },
   stop_reading: {
     fun: async function () {
+      updateTempFile()
       resetTimer()
-
     }
   }
 })
@@ -435,6 +443,23 @@ const handleGetVisaList = async () => {
     message.error(`获取资源失败，${error}`)
   }
 }
+
+const updateTempFile = () => {
+  let endTime = moment().format("YYYY-MM-DD~HH:mm:ss");
+  useFile.stopFile(endTime)
+
+}
+
+const showHistoryItem = (content: any) => {
+  let options = content;
+  chartRef.value.updateHistoryData(options)
+}
+let showHistory = ref(false)
+const changeShowHistoryView = (status: boolean) => {
+  showHistory.value = status
+  chartRef.value.clearEcharts()
+}
+provide('changeShowHistoryView', changeShowHistoryView)
 onMounted(() => {
   handleListenErr()
   handleGetVisaList()
@@ -468,153 +493,166 @@ onMounted(() => {
       <div class="chartContainer">
         <Charts :volts="volts" ref="chartRef" :is_running="is_running" :is_volt_case="is_volt_case" />
       </div>
-      <div class="settings">
-        <a-divider orientation="left" style="color: #fff;">连接配置<span style="font-size: 11px;">
-            (与设备连接上后才能进行测试)</span></a-divider>
+      <div class="sider">
+        <div class="settings" v-if="!showHistory">
+          <a-divider orientation="left" style="color: #fff;">连接配置<span style="font-size: 11px;">
+              (与设备连接上后才能进行测试)</span></a-divider>
 
-        <div class="forms">
-          <a-form layout="inline">
-            <a-form-item label="设备" name="cur">
-              <a-input-group compact>
-                <a-select v-model:value="visa_ip" :options="visa_list" style="width: 210px;">
-                  <template #dropdownRender="{ menuNode: menu }">
-                    <v-nodes :vnodes="menu" />
-                    <a-divider style="margin: 4px 0" />
-                    <a-space style="padding: 4px 8px">
-                      <a-input ref="inputRef" v-model:value="instr_ip" placeholder="填写IP地址" />
-                      <a-button type="text" @click="addVisaItem" :disabled="power_supply"
-                        :loading="actions.powerOn.loading">
-                        <template #icon>
-                          <plus-outlined />
-                        </template>
-                        添加
-                      </a-button>
-                    </a-space>
-                  </template>
-                </a-select>
-                <a-button v-if="!power_supply" @click="actions.powerOn.fun()" :loading="actions.powerOn.loading"
-                  type="primary">连接设备</a-button>
-                <a-button v-else @click="actions.powerOff.fun()" :loading="actions.powerOff.loading" danger
-                  type="primary">关闭连接</a-button>
-              </a-input-group>
+          <div class="forms">
+            <a-form layout="inline">
+              <a-form-item label="设备" name="cur">
+                <a-input-group compact>
+                  <a-select v-model:value="visa_ip" :options="visa_list" style="width: 210px;">
+                    <template #dropdownRender="{ menuNode: menu }">
+                      <v-nodes :vnodes="menu" />
+                      <a-divider style="margin: 4px 0" />
+                      <a-space style="padding: 4px 8px">
+                        <a-input ref="inputRef" v-model:value="instr_ip" placeholder="填写IP地址" />
+                        <a-button type="text" @click="addVisaItem" :disabled="power_supply"
+                          :loading="actions.powerOn.loading">
+                          <template #icon>
+                            <plus-outlined />
+                          </template>
+                          添加
+                        </a-button>
+                      </a-space>
+                    </template>
+                  </a-select>
+                  <a-button v-if="!power_supply" @click="actions.powerOn.fun()" :loading="actions.powerOn.loading"
+                    type="primary">连接设备</a-button>
+                  <a-button v-else @click="actions.powerOff.fun()" :loading="actions.powerOff.loading" danger
+                    type="primary">关闭连接</a-button>
+                </a-input-group>
 
-            </a-form-item>
-          </a-form>
-        </div>
-        <a-form :model="form_state" name="basic" autocomplete="off">
-          <div v-for="(item, index) in form_state" :key="index">
-            <a-divider orientation="left" style="color: #fff;">
-              <div class="chn_action">
-                <span style="color: #fff;font-size: 14px;margin-right: 20px;">{{ index }}号通道</span>
-                <div>
-                  <a-checkbox v-model:checked="item.case" :disabled="is_running">
-                    <span style="color: #fff;font-size: 14px;">测试</span>
-                  </a-checkbox>
+              </a-form-item>
+            </a-form>
+          </div>
+          <a-form :model="form_state" name="basic" autocomplete="off">
+            <div v-for="(item, index) in form_state" :key="index">
+              <a-divider orientation="left" style="color: #fff;">
+                <div class="chn_action">
+                  <span style="color: #fff;font-size: 14px;margin-right: 20px;">{{ index }}号通道</span>
                   <div>
-                    <span style="color: #fff;font-size: 14px;">通道：</span>
-                    <a-switch checked-children="开启" @change="handleSwitchChn(index as string)" :disabled="!item.case"
-                      un-checked-children="关" v-model:checked="item.switch" />
+                    <a-checkbox v-model:checked="item.case" :disabled="is_running">
+                      <span style="color: #fff;font-size: 14px;">测试</span>
+                    </a-checkbox>
+                    <div>
+                      <span style="color: #fff;font-size: 14px;">通道：</span>
+                      <a-switch checked-children="开启" @change="handleSwitchChn(index as string)" :disabled="!item.case"
+                        un-checked-children="关" v-model:checked="item.switch" />
+                    </div>
                   </div>
                 </div>
+
+              </a-divider>
+              <div>
+                <a-row>
+                  <a-col :span="12">
+                    <a-form-item label="电压" name="vol">
+                      <a-input-number :step="0.01" :max="item.max.volt" min="1.0" :disabled="!item.case"
+                        v-model:value="item.volt" />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="12">
+                    <a-form-item label="OCP" name="cur">
+                      <a-input-number :step="0.01" :max="item.max.cur" min="1.0" :disabled="!item.case"
+                        v-model:value="item.curr" />
+                    </a-form-item>
+                  </a-col>
+                </a-row>
               </div>
-
-            </a-divider>
-            <div>
-              <a-row>
-                <a-col :span="12">
-                  <a-form-item label="电压" name="vol">
-                    <a-input-number :step="0.01" :max="item.max.volt" min="1.0" :disabled="!item.case"
-                      v-model:value="item.volt" />
-                  </a-form-item>
-                </a-col>
-                <a-col :span="12">
-                  <a-form-item label="OCP" name="cur">
-                    <a-input-number :step="0.01" :max="item.max.cur" min="1.0" :disabled="!item.case"
-                      v-model:value="item.curr" />
-                  </a-form-item>
-                </a-col>
-              </a-row>
             </div>
-          </div>
-        </a-form>
-        <a-divider orientation="left" style="color: #fff;">测试</a-divider>
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="采样" name="cur">
-              <a-select ref="select" v-model:value="split_time" :disabled="is_running">
-                <a-select-option :value="10">10毫秒</a-select-option>
-                <a-select-option :value="50">50毫秒</a-select-option>
-                <a-select-option :value="100">100毫秒</a-select-option>
-                <a-select-option :value="200">200毫秒</a-select-option>
-                <a-select-option :value="500">500毫秒</a-select-option>
-                <a-select-option :value="700">700毫秒</a-select-option>
-                <a-select-option :value="1000">1000毫秒</a-select-option>
-                <a-select-option :value="1500">1500毫秒</a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="类型">
-              <a-checkbox-group v-model:value="case_select" :disabled="is_running">
-                <a-checkbox value="1" disabled name="type">电流</a-checkbox>
-                <a-checkbox value="2" name="type">电压</a-checkbox>
-              </a-checkbox-group>
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="等待时长" name="cur">
-              <a-input-number v-model:value="waitTime" :disabled="is_running" min="0" style="width: 100px;">
-                <template #addonAfter>
-                  分钟
-                </template>
-              </a-input-number>
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="测试时长" 　name="caseTime">
-              <a-input-number v-model:value="caseTime" :disabled="is_running" min="0" style="width: 100px;">
-                <template #addonAfter>
-                  分钟
-                </template>
-              </a-input-number>
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-form-item name="cur">
-          <div class="case_btns">
-            <a-button v-if="!is_running" :disabled="!power_supply" @click="handleStartTast"
-              type="primary">开始测试</a-button>
-            <a-button v-else disabled="" type="primary">{{ formattedTime }}</a-button>
+          </a-form>
+          <a-divider orientation="left" style="color: #fff;">测试</a-divider>
+          <a-row :gutter="16">
+            <a-col :span="12">
+              <a-form-item label="采样" name="cur">
+                <a-select ref="select" v-model:value="split_time" :disabled="is_running">
+                  <a-select-option :value="10">10毫秒</a-select-option>
+                  <a-select-option :value="50">50毫秒</a-select-option>
+                  <a-select-option :value="100">100毫秒</a-select-option>
+                  <a-select-option :value="200">200毫秒</a-select-option>
+                  <a-select-option :value="500">500毫秒</a-select-option>
+                  <a-select-option :value="700">700毫秒</a-select-option>
+                  <a-select-option :value="1000">1000毫秒</a-select-option>
+                  <a-select-option :value="1500">1500毫秒</a-select-option>
+                </a-select>
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="类型">
+                <a-checkbox-group v-model:value="case_select" :disabled="is_running">
+                  <a-checkbox value="1" disabled name="type">电流</a-checkbox>
+                  <a-checkbox value="2" name="type">功率</a-checkbox>
+                </a-checkbox-group>
+              </a-form-item>
+            </a-col>
+          </a-row>
+          <a-row :gutter="16">
+            <a-col :span="12">
+              <a-form-item label="等待时长" name="cur">
+                <a-input-number v-model:value="waitTime" :disabled="is_running" min="0" style="width: 100px;">
+                  <template #addonAfter>
+                    分钟
+                  </template>
+                </a-input-number>
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="测试时长" 　name="caseTime">
+                <a-input-number v-model:value="caseTime" :disabled="is_running" min="0" style="width: 100px;">
+                  <template #addonAfter>
+                    分钟
+                  </template>
+                </a-input-number>
+              </a-form-item>
+            </a-col>
+          </a-row>
+          <a-form-item name="cur">
+            <div class="case_btns">
+              <a-button v-if="!is_running" :disabled="!power_supply" @click="handleStartTast"
+                type="primary">开始测试</a-button>
+              <a-button v-else disabled="" type="primary">{{ formattedTime }}</a-button>
 
-            <a-button v-if="!is_stop" @click="stopTimer" :disabled="!is_running">暂停测试</a-button>
-            <a-button v-else @click="startTimer" :disabled="!is_running">启动测试</a-button>
+              <a-button v-if="!is_stop" @click="stopTimer" :disabled="!is_running">暂停测试</a-button>
+              <a-button v-else @click="startTimer" :disabled="!is_running">启动测试</a-button>
 
-            <a-button :disabled="!is_running" @click="actions.stop_reading.fun()" danger type="primary">结束测试</a-button>
-          </div>
-        </a-form-item>
-        <a-divider orientation="left" style="color: #fff;">测试数据</a-divider>
-        <div class="case_data">
-          <div v-for="(item, index) in volt_data" :key="index" v-show="form_state[index].case">
-            <p class="title">{{ index }}号通道数据</p>
-            <p>最大电流{{ is_volt_case ? '/电压' : '' }} <br> <span>{{ item.curr.max }}mA {{ is_volt_case ? `/
-                ${item.volt.max}V` :
-              '' }}</span></p>
-            <p>最小电流{{ is_volt_case ? '/电压' : '' }} <br><span>{{ item.curr.min }}mA {{ is_volt_case ? `/
-                ${item.volt.min}V` :
-              '' }}</span></p>
-            <p>当前电流{{ is_volt_case ? '/电压' : '' }} <br><span>{{ item.curr.val || 0 }}mA {{ is_volt_case ? `/
-                ${item.volt.val}V` : '' }}</span></p>
-            <p>平均电流{{ is_volt_case ? '/电压' : '' }} <br><span>{{ item.curr.average }}mA {{ is_volt_case ? `/
-                ${item.volt.average}V` : '' }}</span>
-            </p>
-            <p>采样次数 <br><span>{{ item.curr.item.length }}次</span></p>
-          </div>
+              <a-button :disabled="!is_running" @click="actions.stop_reading.fun()" danger
+                type="primary">结束测试</a-button>
+            </div>
+          </a-form-item>
+          <a-divider orientation="left" style="color: #fff;">测试数据</a-divider>
+          <div class="case_data">
+            <div v-for="(item, index) in volt_data" :key="index" v-show="form_state[index].case">
+              <p class="title">{{ index }}号通道数据</p>
+              <p>最大电流{{ is_volt_case ? '/功率' : '' }} <br> <span>{{ item.curr.max }}mA {{ is_volt_case ? `/
+                  ${item.volt.max}V` :
+                '' }}</span></p>
+              <p>最小电流{{ is_volt_case ? '/功率' : '' }} <br><span>{{ item.curr.min }}mA {{ is_volt_case ? `/
+                  ${item.volt.min}V` :
+                '' }}</span></p>
+              <p>当前电流{{ is_volt_case ? '/功率' : '' }} <br><span>{{ item.curr.val || 0 }}mA {{ is_volt_case ? `/
+                  ${item.volt.val}V` : '' }}</span></p>
+              <p>平均电流{{ is_volt_case ? '/功率' : '' }} <br><span>{{ item.curr.average }}mA {{ is_volt_case ? `/
+                  ${item.volt.average}V` : '' }}</span>
+              </p>
+              <p>采样次数 <br><span>{{ item.curr.item.length }}次</span></p>
+            </div>
 
+          </div>
+        </div>
+
+        <div class="historyList" v-else>
+          <a-divider orientation="left" style="color: #fff;">
+            历史记录列表
+            <span style="font-size: 11px;margin-right: 50px;">
+              (单选时间段进行查看)
+            </span>
+            <a-button type="primary" @click="changeShowHistoryView(false)" size="small">退出</a-button>
+          </a-divider>
+          <Historylist @showHistoryItem="showHistoryItem" />
         </div>
       </div>
-
     </div>
     <a-modal :maskClosable="false" :destroyOnClose="true" :closable="false" v-model:open="openPlaned" title="测试任务">
       <template #footer>
@@ -650,10 +688,12 @@ html {
   border-radius: 20px;
   display: flex;
   background: rgb(38, 43, 52);
-
   flex-direction: column;
 }
-
+ div{
+  margin: 0;
+  padding: 0;
+}
 .main {
 
   background: rgba(0, 0, 0, 0.2);
@@ -713,11 +753,11 @@ html {
   height: 100%;
 }
 
-.settings {
+.sider {
   width: 400px;
   background: rgb(38 43 52);
   padding: 0 10px;
-
+  height: 100%;
 
   .btns {
     display: flex;
@@ -728,7 +768,6 @@ html {
       width: 50%;
     }
   }
-
 
   .case_btns {
     display: flex;
@@ -764,6 +803,15 @@ html {
       }
     }
   }
+}
+
+.settings {
+  width: 100%;
+}
+
+.historyList {
+  width: 100%;
+  height: 100%;
 }
 
 .chartContainer {

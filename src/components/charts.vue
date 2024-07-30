@@ -2,6 +2,9 @@
 import * as echarts from 'echarts'
 import { h, ref, onMounted, watch } from 'vue'
 import { FileDoneOutlined, FileAddOutlined } from "@ant-design/icons-vue"
+import { UseFileStore } from "../store/useFile";
+let useFile = UseFileStore();
+
 let chartCibtauber = ref(null)
 let mychart = null;
 let volitVals = ref([])
@@ -36,17 +39,17 @@ let updateECharts = (val, label) => {
 
         if (props.is_volt_case) {
             let voltserie = {
-                name: key + '号电压',
+                name: key + '号功率',
                 data: data.volt.item,
 
                 yAxisIndex: 1, // 对应右侧的Y轴
                 tooltip: {
                     valueFormatter: function (value) {
-                        return value + 'V';
+                        return value + 'W';
                     }
                 },
             }
-            legend.push(key + '号电压')
+            legend.push(key + '号功率')
             series.push(voltserie)
         }
 
@@ -61,6 +64,7 @@ let updateECharts = (val, label) => {
         },
         series: series
     }
+    useFile.setContent(options)
     mychart.setOption(options)
 }
 let options = {
@@ -68,20 +72,8 @@ let options = {
         name: "电量计仪器测试工具"
     },
     toolbox: {
-        itemSize: 28,
-        feature: {
-            // saveAsImage: {
-            //     title: "保存图片"
-            // },
-            // myTool2: {
-            //     show: true,
-            //     title: '工具组',
-            //     icon: 'image://' + toolsIcon.value.tools.href,
-            //     onclick: function () {
-            //         alert('myToolHandler2')
-            //     }
-            // }
-        }
+        itemSize: 18,
+        itemGap: 25,
     },
     xAxis: {
         type: 'category',
@@ -97,10 +89,10 @@ let options = {
         },
         {
             type: 'value',
-            name: '电压',
+            name: '功率',
             position: 'right',
             axisLabel: {
-                formatter: '{value} V'
+                formatter: '{value} W'
             }
         }
     ],
@@ -123,40 +115,70 @@ let options = {
     ],
     series: [
         {
-            name: 'o1号电流',
+            name: 'CH1号电流',
             data: [],  // 初始数据
             type: 'line',
             yAxisIndex: 0, // 对应左侧的Y轴
-            smooth: true
+            smooth: true,
+            tooltip: {
+                valueFormatter: function (value) {
+                    return value + ' mA';
+                }
+            },
         }, {
-            name: 'o1号电压',
+            name: 'CH1号功率',
             data: [],  // 初始数据
             yAxisIndex: 1, // 对应右侧的Y轴
             type: 'line',
+            tooltip: {
+                valueFormatter: function (value) {
+                    return value + 'W';
+                }
+            },
             smooth: true
         }, {
-            name: 'o2号电流',
+            name: 'CH2号电流',
             data: [],  // 初始数据
             type: 'line',
             yAxisIndex: 0, // 对应左侧的Y轴
+            tooltip: {
+                valueFormatter: function (value) {
+                    return value + ' mA';
+                }
+            },
             smooth: true
         }, {
-            name: 'o2号电压',
+            name: 'CH2号功率',
             data: [],  // 初始数据
             yAxisIndex: 1, // 对应右侧的Y轴
             type: 'line',
+            tooltip: {
+                valueFormatter: function (value) {
+                    return value + 'W';
+                }
+            },
             smooth: true
         }, {
-            name: 'o3号电流',
+            name: 'CH3号电流',
             data: [],  // 初始数据
             yAxisIndex: 0, // 对应左侧的Y轴
+            tooltip: {
+                valueFormatter: function (value) {
+                    return value + ' mA';
+                }
+            },
             type: 'line',
             smooth: true
         }, {
-            name: 'o3号电压',
+            name: 'CH3号功率',
             data: [],  // 初始数据
             yAxisIndex: 1, // 对应右侧的Y轴
             type: 'line',
+            tooltip: {
+                valueFormatter: function (value) {
+                    return value + 'W';
+                }
+            },
             smooth: true
         },
     ],
@@ -172,6 +194,15 @@ let clearEcharts = () => {
     mychart.clear();
     mychart.setOption(options)
 }
+let getChartOptions = () => {
+    let options = mychart.getOption();
+    return options
+}
+const updateHistoryData = (content) => {
+    mychart.clear();
+    mychart.setOption(options)
+    mychart.setOption(content)
+}
 window.addEventListener('resize', () => {
     mychart?.resize()
 })
@@ -180,7 +211,7 @@ onMounted(() => {
     mychart.setOption(options);
 })
 defineExpose({
-    updateECharts, clearEcharts
+    updateECharts, clearEcharts, updateHistoryData, getChartOptions
 })
 </script>
 <template>

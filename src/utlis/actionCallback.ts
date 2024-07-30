@@ -10,7 +10,6 @@ export const ActionDataAsyncCallback = (name: string, item: any, item2: string) 
     return new Promise(async (resolve, reject) => {
         try {
             let unlisten = await listen("action_res", e => {
-                console.log(e.payload)
                 let data = e.payload as string;
                 if (data.indexOf('error') != -1) {
                     reject(data)
