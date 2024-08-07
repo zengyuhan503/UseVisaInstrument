@@ -192,10 +192,9 @@ async fn main() {
                                 let index = item1.parse().unwrap();
                                 let temp_file = TEMP_DATA.lock().await;
                                 let res = temp_file.delete(index);
-                                log::info!("delete_history_data: {:?}", res);
                                 match res {
                                     Ok(()) => {
-                                        let _ = emit_win.emit("action_res", "ok");
+                                        let _ = emit_win.emit("action_res", "ok:delete");
                                     }
                                     Err(err) => {
                                         let strs = format!("delete error:{}", err);

@@ -127,8 +127,5 @@ fn main() -> Result<(), VisaError> {
 
 欢迎任何形式的贡献！如果你有任何建议、问题或发现了 bug，请提交 issue 或 pull request。
 
-### 许可证
-
-本项目使用 MIT 许可证。详情请参见 LICENSE 文件。
 
 ---

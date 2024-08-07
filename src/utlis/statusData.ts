@@ -1,5 +1,4 @@
-import { readTextFile, BaseDirectory } from '@tauri-apps/api/fs';
-import { ACtionDataCallback, ActionDataAsyncCallback } from './actionCallback';
+import { ActionDataAsyncCallback } from './actionCallback';
 
 interface UseFsACtions {
     path: string,
@@ -25,28 +24,36 @@ export class UseFs {
     readText() {
         let path = this.path;
         return new Promise(async (resolve, reject) => {
-            let params = {
-                name: 'read_text_file',
-                item1: path,
-                item2: ""
+            try {
+                let params = {
+                    name: 'read_text_file',
+                    item1: path,
+                    item2: ""
+                }
+                let res = await ActionDataAsyncCallback(params.name, params.item1, "");
+                console.log(res);
+                resolve(res)
+            } catch (error) {
+                reject(error)
             }
-            let res = await ActionDataAsyncCallback(params.name, params.item1, "");
-            console.log(res);
-            resolve(res)
         })
     }
     writeText(content: string) {
         let path = this.path;
         return new Promise(async (resolve, reject) => {
-            let params = {
-                name: 'write_file',
-                item1: path,
-                item2: content
-            }
-            let res = await ActionDataAsyncCallback(params.name, params.item1, content);
-            console.log(res);
+            try {
+                let params = {
+                    name: 'write_file',
+                    item1: path,
+                    item2: content
+                }
+                let res = await ActionDataAsyncCallback(params.name, params.item1, content);
+                console.log(res);
+                resolve(res)
+            } catch (error) {
+                reject(error)
 
-            resolve(res)
+            }
         })
     }
 

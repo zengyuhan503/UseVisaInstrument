@@ -64,11 +64,13 @@ let instr_ip = ref("")
 // let instr_ip = ref("172.28.248.113")
 let volts: Ref<number | null> = ref(null)
 let chartRef: Ref<InstanceType<typeof Charts> | null> = ref(null)
+let historyRef: Ref<InstanceType<typeof Historylist> | null> = ref(null)
 let is_running = ref(false)
 let is_stop = ref(false);
 let case_select = ref(["1"])
 let waitTime = ref(0);
 let caseTime = ref(0);
+let ishistoryUi = ref(true)
 let is_volt_case = computed(() => {
   return (case_select.value.includes('2'))
 });
@@ -89,8 +91,8 @@ const createVoltEntry = () => {
       average: computed((): number => {
         let vals = state.volt.item;
         let sum = vals.reduce((acc, val) => acc + val, 0);
-        let average_val = Math.floor((sum / vals.length) * 100) / 100;
-        return vals.length ? average_val : 0;
+        let average_val = (sum / vals.length).toFixed(3);
+        return vals.length ? parseFloat(average_val) : 0;
       }),
     },
     "curr": {
@@ -185,8 +187,8 @@ let form_state: Ref<FormData> = ref({
     curr: 1.0,
     switch: true,
     max: {
-      curr: 25.0,
-      volt: 2.0
+      curr: 2.0,
+      volt: 25.0
     }
   },
   "CH3": {
@@ -195,8 +197,8 @@ let form_state: Ref<FormData> = ref({
     curr: 1.5,
     switch: true,
     max: {
-      curr: 25.0,
-      volt: 2.0
+      curr: 2.0,
+      volt: 25.0
     }
   },
 })
@@ -362,8 +364,9 @@ let actions = ref({
         let res = handlePairsVal(val);
         for (const key in res) {
           let data = res[key];
-          let curr = parseInt((data[1] * 1000) + '') / 1000;
-          let volt = parseInt(((data[0] * curr) * 1000) + '') / 1000;
+          let curr = roundToThree(data[1]);
+          let result = data[1] * data[0];
+          let volt = roundToThree(result);
 
           handleSetData(volt, curr, key)
         }
@@ -379,6 +382,11 @@ let actions = ref({
     }
   }
 })
+
+function roundToThree(num: number) {
+  return Math.round(num * 1000) / 1000;
+}
+
 let handleSetData = (volt: number, curr: number, ikey: string) => {
   for (const key in volt_data.value) {
     if (key == ikey) {
@@ -447,12 +455,18 @@ const handleGetVisaList = async () => {
 const updateTempFile = () => {
   let endTime = moment().format("YYYY-MM-DD~HH:mm:ss");
   useFile.stopFile(endTime)
-
 }
 
 const showHistoryItem = (content: any) => {
   let options = content;
   chartRef.value.updateHistoryData(options)
+}
+const changeHistoryShowUi = () => {
+  ishistoryUi.value = !ishistoryUi.value
+  if (!ishistoryUi.value) {
+    chartRef.value.clearEcharts()
+  }
+  historyRef.value?.changeListManager(ishistoryUi.value)
 }
 let showHistory = ref(false)
 const changeShowHistoryView = (status: boolean) => {
@@ -471,25 +485,11 @@ onMounted(() => {
   if (connect_visa_ip) {
     visa_ip.value = connect_visa_ip;
   }
-  let case_data = localStorage.getItem('visa_case_data');
-  if (case_data) {
-    var data = JSON.parse(case_data)
-    for (const key in data) {
-      if (Object.prototype.hasOwnProperty.call(data, key)) {
-        const item = data[key];
-        item.case = false
-      }
-    }
-    form_state.value.CH1 = data.CH1;
-    form_state.value.CH2 = data.CH2;
-    form_state.value.CH3 = data.CH3;
-  }
 })
 </script>
 
 <template>
   <div class="header" data-tauri-drag-region>
-
     <Head />
   </div>
   <div class="main">
@@ -523,11 +523,10 @@ onMounted(() => {
                     </template>
                   </a-select>
                   <a-button v-if="!power_supply" @click="actions.powerOn.fun()" :loading="actions.powerOn.loading"
-                    type="primary">连接设备</a-button>
+                    type="primary">连接</a-button>
                   <a-button v-else @click="actions.powerOff.fun()" :loading="actions.powerOff.loading" danger
-                    type="primary">关闭连接</a-button>
+                    type="primary">关闭</a-button>
                 </a-input-group>
-
               </a-form-item>
             </a-form>
           </div>
@@ -535,15 +534,15 @@ onMounted(() => {
             <div v-for="(item, index) in form_state" :key="index">
               <a-divider orientation="left" style="color: #fff;">
                 <div class="chn_action">
-                  <span style="color: #fff;font-size: 14px;margin-right: 20px;">{{ index }}号通道</span>
+                  <span style="color: #fff;font-size: 14px;margin-right: 20px;">{{ index }}</span>
                   <div>
                     <a-checkbox v-model:checked="item.case" :disabled="is_running">
                       <span style="color: #fff;font-size: 14px;">测试</span>
                     </a-checkbox>
                     <div>
                       <span style="color: #fff;font-size: 14px;">通道：</span>
-                      <a-switch checked-children="开启" @change="handleSwitchChn(index as string)" :disabled="!item.case"
-                        un-checked-children="关" v-model:checked="item.switch" />
+                      <a-switch checked-children="上电" @change="handleSwitchChn(index as string)" :disabled="!item.case"
+                        un-checked-children="断电" v-model:checked="item.switch" />
                     </div>
                   </div>
                 </div>
@@ -558,8 +557,9 @@ onMounted(() => {
                     </a-form-item>
                   </a-col>
                   <a-col :span="12">
-                    <a-form-item label="OCP" name="cur">
-                      <a-input-number :step="0.01" :max="item.max.cur" min="1.0" :disabled="!item.case"
+                    <a-form-item label="最大电流" name="cur">
+
+                      <a-input-number :step="0.01" :max="item.max.curr" min="1.0" :disabled="!item.case"
                         v-model:value="item.curr" />
                     </a-form-item>
                   </a-col>
@@ -628,18 +628,18 @@ onMounted(() => {
           <a-divider orientation="left" style="color: #fff;">测试数据</a-divider>
           <div class="case_data">
             <div v-for="(item, index) in volt_data" :key="index" v-show="form_state[index].case">
-              <p class="title">{{ index }}号通道数据</p>
+              <p class="title">{{ index }}数据</p>
               <p>最大电流{{ is_volt_case ? '/功率' : '' }} <br> <span>{{ item.curr.max }}mA
-                  {{ is_volt_case ? `/ ${item.volt.max}W` : '' }}</span>
+                  {{ is_volt_case ? `/ ${item.volt.max}mW` : '' }}</span>
               </p>
               <p>最小电流{{ is_volt_case ? '/功率' : '' }} <br> <span>{{ item.curr.min }}mA
-                  {{ is_volt_case ? `/ ${item.volt.min}W` : '' }}</span>
+                  {{ is_volt_case ? `/ ${item.volt.min}mW` : '' }}</span>
               </p>
               <p>当前电流{{ is_volt_case ? '/功率' : '' }} <br> <span>{{ item.curr.val || 0 }}mA
-                  {{ is_volt_case ? `/ ${item.volt.val}W` : '' }}</span>
+                  {{ is_volt_case ? `/ ${item.volt.val}mW` : '' }}</span>
               </p>
               <p>平均电流{{ is_volt_case ? '/功率' : '' }} <br> <span>{{ item.curr.average }}mA
-                  {{ is_volt_case ? `/ ${item.volt.average}W` : '' }}</span>
+                  {{ is_volt_case ? `/ ${item.volt.average}mW` : '' }}</span>
               </p>
               <p>采样次数 <br><span>{{ item.curr.item.length }}次</span></p>
             </div>
@@ -650,12 +650,14 @@ onMounted(() => {
         <div class="historyList" v-else>
           <a-divider orientation="left" style="color: #fff;">
             历史记录列表
-            <span style="font-size: 11px;margin-right: 50px;">
-              (单选时间段进行查看)
-            </span>
-            <a-button type="primary" @click="changeShowHistoryView(false)" size="small">退出</a-button>
+            <a-button v-if="ishistoryUi" style="margin-left: 100px" type="link" @click="changeHistoryShowUi()"
+              size="small">管理</a-button>
+            <a-button v-else style="margin-left: 100px" type="link" @click="changeHistoryShowUi()"
+              size="small">回显</a-button>
+            <a-divider type="vertical" />
+            <a-button type="link" @click="changeShowHistoryView(false)" size="small">退出</a-button>
           </a-divider>
-          <Historylist @showHistoryItem="showHistoryItem" />
+          <Historylist @showHistoryItem="showHistoryItem" ref="historyRef" />
         </div>
       </div>
     </div>

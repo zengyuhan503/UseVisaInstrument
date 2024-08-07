@@ -25,7 +25,7 @@ let updateECharts = (val, label) => {
             continue;
         }
         let currlserie = {
-            name: key + '号电流',
+            name: key + '电流',
             data: data.curr.item,
             yAxisIndex: 0, // 对应右侧的Y轴
             tooltip: {
@@ -34,22 +34,22 @@ let updateECharts = (val, label) => {
                 }
             },
         }
-        legend.push(key + '号电流')
+        legend.push(key + '电流')
         series.push(currlserie)
 
         if (props.is_volt_case) {
             let voltserie = {
-                name: key + '号功率',
+                name: key + '功率',
                 data: data.volt.item,
 
                 yAxisIndex: 1, // 对应右侧的Y轴
                 tooltip: {
                     valueFormatter: function (value) {
-                        return value + 'W';
+                        return value + 'mW';
                     }
                 },
             }
-            legend.push(key + '号功率')
+            legend.push(key + '功率')
             series.push(voltserie)
         }
 
@@ -92,7 +92,7 @@ let options = {
             name: '功率',
             position: 'right',
             axisLabel: {
-                formatter: '{value} W'
+                formatter: '{value} mW'
             }
         }
     ],
@@ -115,7 +115,7 @@ let options = {
     ],
     series: [
         {
-            name: 'CH1号电流',
+            name: 'CH1电流',
             data: [],  // 初始数据
             type: 'line',
             yAxisIndex: 0, // 对应左侧的Y轴
@@ -126,18 +126,18 @@ let options = {
                 }
             },
         }, {
-            name: 'CH1号功率',
+            name: 'CH1功率',
             data: [],  // 初始数据
             yAxisIndex: 1, // 对应右侧的Y轴
             type: 'line',
             tooltip: {
                 valueFormatter: function (value) {
-                    return value + 'W';
+                    return value + 'mW';
                 }
             },
             smooth: true
         }, {
-            name: 'CH2号电流',
+            name: 'CH2电流',
             data: [],  // 初始数据
             type: 'line',
             yAxisIndex: 0, // 对应左侧的Y轴
@@ -148,18 +148,18 @@ let options = {
             },
             smooth: true
         }, {
-            name: 'CH2号功率',
+            name: 'CH2功率',
             data: [],  // 初始数据
             yAxisIndex: 1, // 对应右侧的Y轴
             type: 'line',
             tooltip: {
                 valueFormatter: function (value) {
-                    return value + 'W';
+                    return value + 'mW';
                 }
             },
             smooth: true
         }, {
-            name: 'CH3号电流',
+            name: 'CH3电流',
             data: [],  // 初始数据
             yAxisIndex: 0, // 对应左侧的Y轴
             tooltip: {
@@ -170,13 +170,13 @@ let options = {
             type: 'line',
             smooth: true
         }, {
-            name: 'CH3号功率',
+            name: 'CH3功率',
             data: [],  // 初始数据
             yAxisIndex: 1, // 对应右侧的Y轴
             type: 'line',
             tooltip: {
                 valueFormatter: function (value) {
-                    return value + 'W';
+                    return value + 'mW';
                 }
             },
             smooth: true
