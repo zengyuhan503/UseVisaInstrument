@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use core::num;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex, RwLock};
 
@@ -192,6 +193,25 @@ async fn main() {
                                 let index = item1.parse().unwrap();
                                 let temp_file = TEMP_DATA.lock().await;
                                 let res = temp_file.delete(index);
+                                match res {
+                                    Ok(()) => {
+                                        let _ = emit_win.emit("action_res", "ok:delete");
+                                    }
+                                    Err(err) => {
+                                        let strs = format!("delete error:{}", err);
+                                        let _ = emit_win.emit("action_res", strs);
+                                    }
+                                }
+                            }
+                            "delete_history_datas" => {
+                                let item1 = params.item1;
+                                let temp_file = TEMP_DATA.lock().await;
+                                let indexs = item1
+                                    .split(',')
+                                    .map(|num_str| num_str.trim().parse())
+                                    .collect::<Result<Vec<usize>, _>>()
+                                    .unwrap();
+                                let res = temp_file.deletes(indexs);
                                 match res {
                                     Ok(()) => {
                                         let _ = emit_win.emit("action_res", "ok:delete");

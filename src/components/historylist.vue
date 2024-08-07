@@ -7,6 +7,7 @@ import { message, Modal } from "ant-design-vue";
 interface HistoryItem {
     name: string,
     content: any,
+    caseName: string
 }
 interface ManagerOptions {
     label: string,
@@ -40,10 +41,8 @@ const changeListManager = (type: any) => {
 }
 const onCheckAllChange = () => {
     if (checkAlls.value) {
-        let keys = historys.value.map((item, key) => {
-            return key
-        })
-        historyGroup.value = keys
+        let keys = Object.keys(historys.value)
+        historyGroup.value = keys.map(key => Number(key));
     } else {
         historyGroup.value = []
     }
@@ -77,13 +76,17 @@ const changeEchartData = (index: number) => {
 let uploadHistoryDataLoading = ref(true)
 let uploadHistoryData = () => {
     ActionDataAsyncCallback("read_history_data", '', '').then((res: any) => {
-        let data = JSON.parse(res);
-        historys.value = []
-        if (typeof data == 'object') {
-            historys.value = data;
-            console.log(historys.value)
+        try {
+
+            let data = JSON.parse(res);
+            historys.value = []
+            if (typeof data == 'object') {
+                historys.value = data;
+            }
+            uploadHistoryDataLoading.value = false;
+        } catch (error) {
+            uploadHistoryData()
         }
-        uploadHistoryDataLoading.value = false;
     })
 }
 let deleteHistory = (index: number) => {
@@ -122,13 +125,11 @@ const removeCheckHistory = () => {
         okText: "确定",
         cancelText: "取消",
         onOk() {
-            historyGroup.value.sort((a, b) => b - a);
-            let reqs = historyGroup.value.map(index => {
-                return ActionDataAsyncCallback("delete_history_data", index + '', '')
-            })
-            Promise.all(reqs).then((res) => {
-                historyGroup.value = [];
-                uploadHistoryData()
+            historyGroup.value.sort((a, b) => a - b);
+            let indexs = historyGroup.value.join(',');
+            ActionDataAsyncCallback("delete_history_datas", indexs, '').then(res => {
+                uploadHistoryData();
+                historyGroup.value = []
             })
         },
     })
@@ -146,10 +147,14 @@ onMounted(() => {
                 <a-space direction="vertical" :size="10">
                     <div v-for="(item, index) in historys" :key="index" class="list">
                         <a-row>
-                            <a-col :span="23">
-                                <a-radio :value="index">{{ item.name }}</a-radio>
+                            <a-col :span="22">
+                                <a-radio :value="index">
+                                    <p class="casename"> {{ item.caseName }}
+                                        <span style="font-size: 12px;">({{ item.name }})</span>
+                                    </p>
+                                </a-radio>
                             </a-col>
-                            <a-col :span="1">
+                            <a-col :span="2">
                                 <a-button :icon="h(DeleteOutlined)" type="primary" danger size="small"
                                     @click="deleteHistory(index)" />
                             </a-col>
@@ -191,6 +196,16 @@ onMounted(() => {
     .list {
         margin: 0;
         padding: 0;
+    }
+
+    .casename {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: inline-block;
+        width: 300px;
+        position: relative;
+        top: 3px;
     }
 
 }

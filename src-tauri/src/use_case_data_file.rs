@@ -40,6 +40,7 @@ pub struct Content {
 pub struct TempData {
     name: String,
     content: Content,
+    caseName:String
 }
 
 #[derive(Debug, Clone)]
@@ -102,6 +103,43 @@ impl TempFile {
         let data: Vec<TempData> = serde_json::from_str(&contents)?;
         Ok(data)
     }
+    pub fn deletes(&self, indices: Vec<usize>) -> io::Result<()> {
+        // 读取现有内容
+        let mut file = OpenOptions::new().read(true).write(true).open(&self.path)?;
+
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+
+        // 反序列化现有内容
+        let mut data_vec: Vec<TempData> = if contents.trim().is_empty() {
+            vec![]
+        } else {
+            serde_json::from_str(&contents)?
+        };
+
+        // 排序索引并从大到小删除
+        let mut sorted_indices = indices.clone();
+        sorted_indices.sort_unstable_by(|a, b| b.cmp(a));
+
+        for &index in sorted_indices.iter() {
+            // 检查索引是否有效
+            if index < data_vec.len() {
+                // 删除指定索引的数据
+                data_vec.remove(index);
+            } else {
+                println!("Invalid index: {}", index);
+            }
+        }
+
+        // 序列化并写回文件
+        let json_data = serde_json::to_string(&data_vec)?;
+        file.set_len(0)?; // 清空文件
+        file.seek(SeekFrom::Start(0))?; // 将文件指针移动到文件开头
+        file.write_all(json_data.as_bytes())?;
+        file.flush()?;
+
+        Ok(())
+    }
     pub fn delete(&self, index: usize) -> io::Result<()> {
         // 读取现有内容
         let mut file = OpenOptions::new().read(true).write(true).open(&self.path)?;
@@ -120,7 +158,6 @@ impl TempFile {
         if index < data_vec.len() {
             // 删除指定索引的数据
             data_vec.remove(index);
-
             // 序列化并写回文件
             let json_data = serde_json::to_string(&data_vec)?;
             file.set_len(0)?; // 清空文件

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineComponent, ref, Ref, computed, onMounted, reactive, provide } from 'vue'
+import { defineComponent, ref, Ref, computed, onMounted, reactive, provide, h } from 'vue'
 // This starter template is using Vue 3 <script setup> SFCs
 // Check out https://vuejs.org/api/sfc-script-setup.html#script-setup
 import Charts from "./components/charts.vue"
@@ -42,6 +42,9 @@ interface NumericDictionary {
 interface VisaItem {
   [key: string]: string
 }
+interface AddCaseNameType {
+  [key: string]: string
+}
 
 const useFile = UseFileStore()
 const VNodes = defineComponent({
@@ -71,6 +74,13 @@ let case_select = ref(["1"])
 let waitTime = ref(0);
 let caseTime = ref(0);
 let ishistoryUi = ref(true)
+let caseName = ref("HN610")
+let addCaseName = ref("")
+let caseNames = ref<AddCaseNameType[]>([
+  { "label": "HN630", value: "HN630" },
+  { "label": "HN611", value: "HN611" },
+  { "label": "HN610", value: "HN610" },
+])
 let is_volt_case = computed(() => {
   return (case_select.value.includes('2'))
 });
@@ -415,6 +425,17 @@ let handleListenErr = async () => {
     actions.value.powerOff.fun();
   })
 }
+const addCaseProject = () => {
+  if (addCaseName.value == '') return false;
+  caseNames.value.push(
+    {
+      label: addCaseName.value,
+      value: addCaseName.value
+    }
+  );
+  caseName.value = addCaseName.value
+  addCaseName.value = ''
+}
 const addVisaItem = () => {
   if (instr_ip.value == '' || instr_ip == null) {
     message.error('请填写IP地址')
@@ -454,7 +475,7 @@ const handleGetVisaList = async () => {
 
 const updateTempFile = () => {
   let endTime = moment().format("YYYY-MM-DD~HH:mm:ss");
-  useFile.stopFile(endTime)
+  useFile.stopFile(endTime, caseName.value)
 }
 
 const showHistoryItem = (content: any) => {
@@ -490,6 +511,7 @@ onMounted(() => {
 
 <template>
   <div class="header" data-tauri-drag-region>
+
     <Head />
   </div>
   <div class="main">
@@ -532,7 +554,7 @@ onMounted(() => {
           </div>
           <a-form :model="form_state" name="basic" autocomplete="off">
             <div v-for="(item, index) in form_state" :key="index">
-              <a-divider orientation="left" style="color: #fff;">
+              <a-divider orientation="left" style="color: #fff;margin: 10px;">
                 <div class="chn_action">
                   <span style="color: #fff;font-size: 14px;margin-right: 20px;">{{ index }}</span>
                   <div>
@@ -546,7 +568,6 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-
               </a-divider>
               <div>
                 <a-row>
@@ -612,6 +633,26 @@ onMounted(() => {
               </a-form-item>
             </a-col>
           </a-row>
+          <a-form-item label="测试项目" name="caseName">
+            <a-input ref="inputRef" v-model:value="caseName" placeholder="填写测试项目" />
+            <!-- <a-input-group compact>
+              <a-select v-model:value="caseName" :options="caseNames" style="width: 100%;">
+                <template #dropdownRender="{ menuNode: menu }">
+                  <v-nodes :vnodes="menu" />
+                  <a-divider style="margin: 4px 0" />
+                  <a-space style="padding: 4px 8px">
+                    <a-input ref="inputRef" v-model:value="addCaseName" placeholder="填写测试名称" />
+                    <a-button type="text" @click="addCaseProject" :disabled="power_supply">
+                      <template #icon>
+                        <plus-outlined />
+                      </template>
+                      添加
+                    </a-button>
+                  </a-space>
+                </template>
+              </a-select>
+            </a-input-group> -->
+          </a-form-item>
           <a-form-item name="cur">
             <div class="case_btns">
               <a-button v-if="!is_running" :disabled="!power_supply" @click="handleStartTast"
